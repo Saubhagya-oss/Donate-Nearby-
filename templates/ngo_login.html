@@ -1,0 +1,487 @@
+{% extends "base.html" %}
+
+{% block title %}NGO Login - Food Donation Connect{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-page {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .auth-page::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: 
+            radial-gradient(circle at 20% 20%, rgba(255,154,118,0.15) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(255,94,98,0.15) 0%, transparent 50%),
+            radial-gradient(circle at 40% 60%, rgba(255,154,118,0.1) 0%, transparent 40%);
+        animation: floatBg 20s ease-in-out infinite;
+        pointer-events: none;
+    }
+    
+    @keyframes floatBg {
+        0%, 100% { transform: translate(0, 0) rotate(0deg); }
+        25% { transform: translate(2%, 2%) rotate(1deg); }
+        50% { transform: translate(-1%, 3%) rotate(-1deg); }
+        75% { transform: translate(3%, -1%) rotate(0.5deg); }
+    }
+    
+    .floating-shapes {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 0;
+    }
+    
+    .shape {
+        position: absolute;
+        border-radius: 50%;
+        background: var(--accent-gradient);
+        opacity: 0.1;
+        animation: floatShape 15s ease-in-out infinite;
+    }
+    
+    .shape-1 { width: 80px; height: 80px; top: 10%; left: 5%; animation-delay: 0s; }
+    .shape-2 { width: 120px; height: 120px; top: 60%; right: 10%; animation-delay: -3s; }
+    .shape-3 { width: 60px; height: 60px; bottom: 15%; left: 15%; animation-delay: -6s; }
+    .shape-4 { width: 100px; height: 100px; top: 30%; right: 20%; animation-delay: -9s; }
+    
+    @keyframes floatShape {
+        0%, 100% { transform: translateY(0) scale(1); opacity: 0.1; }
+        50% { transform: translateY(-30px) scale(1.1); opacity: 0.15; }
+    }
+    
+    .info-panel {
+        position: relative;
+        z-index: 1;
+    }
+    
+    .card-auth {
+        position: relative;
+        z-index: 1;
+        background: rgba(255,255,255,0.95);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255,255,255,0.3);
+    }
+    
+    .form-floating-group {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-floating-group .form-control {
+        padding: 1rem 1rem 0.5rem;
+        padding-right: 3rem;
+        border: 2px solid #e8e8e8;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        background: #fafafa;
+    }
+    
+    .form-floating-group .form-control:focus {
+        border-color: var(--accent-2);
+        background: white;
+        box-shadow: 0 0 0 4px rgba(255,94,98,0.1);
+        outline: none;
+    }
+    
+    .form-floating-group .form-control:not(:placeholder-shown) + label,
+    .form-floating-group .form-control:focus + label {
+        transform: translateY(-1.5rem) scale(0.85);
+        color: var(--accent-2);
+        background: white;
+        padding: 0 0.5rem;
+    }
+    
+    .form-floating-group label {
+        position: absolute;
+        top: 50%;
+        left: 1rem;
+        transform: translateY(-50%);
+        color: #999;
+        font-size: 1rem;
+        pointer-events: none;
+        transition: all 0.2s ease;
+        font-weight: 500;
+    }
+    
+    .form-floating-group .input-icon {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #ccc;
+        transition: color 0.3s;
+        cursor: pointer;
+    }
+    
+    .form-floating-group .form-control:focus ~ .input-icon {
+        color: var(--accent-2);
+    }
+    
+    .btn-gradient {
+        position: relative;
+        overflow: hidden;
+        padding: 1rem 2rem;
+        font-size: 1rem;
+    }
+    
+    .btn-gradient::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        transition: left 0.5s;
+    }
+    
+    .btn-gradient:hover::before {
+        left: 100%;
+    }
+    
+    .stat-item {
+        text-align: center;
+        padding: 1rem;
+    }
+    
+    .stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 1;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .stat-label {
+        font-size: 0.875rem;
+        opacity: 0.8;
+        margin-top: 0.25rem;
+    }
+    
+    .feature-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .feature-list li {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .feature-list li:last-child {
+        border-bottom: none;
+    }
+    
+    .feature-list i {
+        font-size: 1.25rem;
+        width: 32px;
+        text-align: center;
+    }
+    
+    .divider {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin: 1.5rem 0;
+        color: #999;
+        font-size: 0.875rem;
+    }
+    
+    .divider::before,
+    .divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: #eee;
+    }
+    
+    .quick-access {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+    
+    .quick-access-item {
+        padding: 1rem;
+        background: rgba(255,255,255,0.1);
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.1);
+        text-align: center;
+        transition: all 0.3s;
+    }
+    
+    .quick-access-item:hover {
+        background: rgba(255,255,255,0.2);
+        transform: translateY(-2px);
+    }
+    
+    .quick-access-item i {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .quick-access-item span {
+        font-size: 0.75rem;
+        font-weight: 500;
+        opacity: 0.9;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid auth-row auth-page">
+    <div class="floating-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+        <div class="shape shape-4"></div>
+    </div>
+    
+    <div class="row w-100 gx-0 align-items-stretch">
+        <!-- Form Panel - Left on Desktop -->
+        <div class="col-lg-6 d-flex align-items-center justify-content-center order-2 order-lg-1">
+            <div class="card-auth p-4 p-lg-5" style="width: 100%; max-width: 480px;">
+                <div class="text-center mb-4">
+                    <div class="bg-gradient rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 64px; height: 64px;">
+                        <i class="bi bi-people fs-2 text-white"></i>
+                    </div>
+                    <h3 class="fw-bold mb-1">Welcome Back</h3>
+                    <p class="text-muted">Sign in to find nearby food donations</p>
+                </div>
+                
+                {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <div class="mb-4">
+                        {% for message in messages %}
+                            <div class="alert alert-info alert-dismissible fade show py-2" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                {% endwith %}
+                
+                <form action="{{ url_for('ngo_login') }}" method="POST" novalidate id="loginForm">
+                    <div class="form-floating-group">
+                        <input type="email" name="email" id="email" class="form-control" placeholder=" " required autocomplete="email" autofocus>
+                        <label for="email">Email Address</label>
+                        <i class="bi bi-envelope input-icon"></i>
+                    </div>
+                    
+                    <div class="form-floating-group">
+                        <input type="password" name="password" id="password" class="form-control" placeholder=" " required autocomplete="current-password">
+                        <label for="password">Password</label>
+                        <i class="bi bi-eye input-icon" onclick="togglePassword('password', this)"></i>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="remember" id="remember">
+                            <label class="form-check-label small" for="remember">Remember me</label>
+                        </div>
+                        <a href="#" class="small text-decoration-none" style="color: var(--accent-2);">Forgot password?</a>
+                    </div>
+                    
+                    <div class="d-grid mb-4">
+                        <button type="submit" class="btn btn-primary btn-primary-custom btn-gradient py-3">
+                            <i class="bi bi-box-arrow-in-right me-2"></i> Sign In
+                        </button>
+                    </div>
+                    
+                    <div class="divider"></div>
+                    
+                    <a href="{{ url_for('ngo_signup') }}" class="btn btn-outline-custom w-100 py-3">
+                        <i class="bi bi-building-add me-2"></i> Register Your NGO
+                    </a>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Info Panel - Right on Desktop -->
+        <div class="col-lg-6 d-flex align-items-center order-1 order-lg-2">
+            <div class="info-panel px-5 px-lg-6 py-5">
+                <div class="logo-badge mb-3">Food Donation Connect</div>
+                <h1 class="fw-bold mb-4" style="font-size: clamp(2rem, 4vw, 2.75rem); line-height: 1.1;">
+                    Food is Waiting<br>For Your Team
+                </h1>
+                <p class="lead mb-5" style="opacity: 0.95; max-width: 480px;">
+                    Events near you are posting surplus food right now. Sign in to see live donations, 
+                    claim pickups instantly, and get food to families who need it most.
+                </p>
+                
+                <!-- Live Stats -->
+                <div class="row g-3 mb-5">
+                    <div class="col-4 stat-item">
+                        <div class="stat-number" id="statActive">23</div>
+                        <div class="stat-label">Active Donations Now</div>
+                    </div>
+                    <div class="col-4 stat-item">
+                        <div class="stat-number" id="statPickups">1,847</div>
+                        <div class="stat-label">Pickups This Month</div>
+                    </div>
+                    <div class="col-4 stat-item">
+                        <div class="stat-number" id="statFamilies">12K+</div>
+                        <div class="stat-label">Families Fed</div>
+                    </div>
+                </div>
+                
+                <!-- Features -->
+                <ul class="feature-list">
+                    <li>
+                        <i class="bi bi-bell-fill" style="color: var(--accent-2);"></i>
+                        <span>Real-time alerts for nearby food</span>
+                    </li>
+                    <li>
+                        <i class="bi bi-map-fill" style="color: var(--accent-1);"></i>
+                        <span>Interactive map with distance filter</span>
+                    </li>
+                    <li>
+                        <i class="bi bi-check-circle-fill" style="color: #20c997;"></i>
+                        <span>One-click accept & coordinate pickup</span>
+                    </li>
+                    <li>
+                        <i class="bi bi-graph-up" style="color: #6f42c1;"></i>
+                        <span>Track your monthly impact</span>
+                    </li>
+                </ul>
+                
+                <!-- Quick Access -->
+                <div class="quick-access">
+                    <div class="quick-access-item">
+                        <i class="bi bi-map"></i>
+                        <span>View Map</span>
+                    </div>
+                    <div class="quick-access-item">
+                        <i class="bi bi-list-ul"></i>
+                        <span>List View</span>
+                    </div>
+                    <div class="quick-access-item">
+                        <i class="bi bi-geo-alt"></i>
+                        <span>Nearby</span>
+                    </div>
+                </div>
+                
+                <div class="mt-5 pt-4 border-top border-white border-opacity-25">
+                    <p class="mb-0 opacity-75 small">
+                        <i class="bi bi-shield-lock me-1"></i>Secure login • 
+                        <i class="bi bi-bell me-1 ms-2"></i>Instant alerts • 
+                        <i class="bi bi-headset me-1 ms-2"></i>Priority support
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes floatBg {
+        0%, 100% { transform: translate(0, 0) rotate(0deg); }
+        25% { transform: translate(2%, 2%) rotate(1deg); }
+        50% { transform: translate(-1%, 3%) rotate(-1deg); }
+        75% { transform: translate(3%, -1%) rotate(0.5deg); }
+    }
+    
+    @keyframes floatShape {
+        0%, 100% { transform: translateY(0) scale(1); opacity: 0.1; }
+        50% { transform: translateY(-30px) scale(1.1); opacity: 0.15; }
+    }
+</style>
+
+<script>
+    function togglePassword(inputId, btn) {
+        const input = document.getElementById(inputId);
+        const icon = btn;
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('bi-eye');
+            icon.classList.add('bi-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('bi-eye-slash');
+            icon.classList.add('bi-eye');
+        }
+    }
+    
+    // Form validation
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+        if (!this.checkValidity()) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        this.classList.add('was-validated');
+    });
+    
+    // Floating label enhancement
+    document.querySelectorAll('.form-floating-group .form-control').forEach(input => {
+        input.addEventListener('focus', function() {
+            this.parentElement.classList.add('focused');
+        });
+        input.addEventListener('blur', function() {
+            this.parentElement.classList.remove('focused');
+        });
+        if (input.value) {
+            input.parentElement.classList.add('has-value');
+        }
+        input.addEventListener('input', function() {
+            if (this.value) this.parentElement.classList.add('has-value');
+            else this.parentElement.classList.remove('has-value');
+        });
+    });
+    
+    // Animate stats on load
+    function animateStat(element, target) {
+        const isNumber = !isNaN(target.replace(/[^\d]/g, ''));
+        const numTarget = parseInt(target.replace(/[^\d]/g, '')) || 0;
+        const suffix = target.replace(/[\d,]/g, '');
+        let current = 0;
+        const duration = 1500;
+        const steps = 60;
+        const increment = numTarget / steps;
+        
+        const animate = () => {
+            current += increment;
+            if (current < numTarget) {
+                element.textContent = Math.floor(current).toLocaleString() + suffix;
+                requestAnimationFrame(animate);
+            } else {
+                element.textContent = target;
+            }
+        };
+        
+        if (isNumber) animate();
+    }
+    
+    // Intersection observer for stats animation
+    const statsObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                animateStat(document.getElementById('statActive'), '23');
+                animateStat(document.getElementById('statPickups'), '1,847');
+                animateStat(document.getElementById('statFamilies'), '12K+');
+                statsObserver.disconnect();
+            }
+        });
+    }, { threshold: 0.5 });
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        const infoPanel = document.querySelector('.info-panel');
+        if (infoPanel) statsObserver.observe(infoPanel);
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,925 @@
+{% extends "base.html" %}
+
+{% block title %}NGO Signup - Food Donation Connect{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-page {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .auth-page::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: 
+            radial-gradient(circle at 20% 20%, rgba(255,154,118,0.15) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(255,94,98,0.15) 0%, transparent 50%),
+            radial-gradient(circle at 40% 60%, rgba(255,154,118,0.1) 0%, transparent 40%);
+        animation: floatBg 20s ease-in-out infinite;
+        pointer-events: none;
+    }
+    
+    @keyframes floatBg {
+        0%, 100% { transform: translate(0, 0) rotate(0deg); }
+        25% { transform: translate(2%, 2%) rotate(1deg); }
+        50% { transform: translate(-1%, 3%) rotate(-1deg); }
+        75% { transform: translate(3%, -1%) rotate(0.5deg); }
+    }
+    
+    .floating-shapes {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 0;
+    }
+    
+    .shape {
+        position: absolute;
+        border-radius: 50%;
+        background: var(--accent-gradient);
+        opacity: 0.1;
+        animation: floatShape 15s ease-in-out infinite;
+    }
+    
+    .shape-1 { width: 80px; height: 80px; top: 10%; left: 5%; animation-delay: 0s; }
+    .shape-2 { width: 120px; height: 120px; top: 60%; right: 10%; animation-delay: -3s; }
+    .shape-3 { width: 60px; height: 60px; bottom: 15%; left: 15%; animation-delay: -6s; }
+    .shape-4 { width: 100px; height: 100px; top: 30%; right: 20%; animation-delay: -9s; }
+    
+    @keyframes floatShape {
+        0%, 100% { transform: translateY(0) scale(1); opacity: 0.1; }
+        50% { transform: translateY(-30px) scale(1.1); opacity: 0.15; }
+    }
+    
+    .info-panel {
+        position: relative;
+        z-index: 1;
+    }
+    
+    .card-auth {
+        position: relative;
+        z-index: 1;
+        background: rgba(255,255,255,0.95);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255,255,255,0.3);
+    }
+    
+    .form-floating-group {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-floating-group .form-control {
+        padding: 1rem 1rem 0.5rem;
+        border: 2px solid #e8e8e8;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        background: #fafafa;
+    }
+    
+    .form-floating-group .form-control:focus {
+        border-color: var(--accent-2);
+        background: white;
+        box-shadow: 0 0 0 4px rgba(255,94,98,0.1);
+        outline: none;
+    }
+    
+    .form-floating-group .form-control:not(:placeholder-shown) + label,
+    .form-floating-group .form-control:focus + label {
+        transform: translateY(-1.5rem) scale(0.85);
+        color: var(--accent-2);
+        background: white;
+        padding: 0 0.5rem;
+    }
+    
+    .form-floating-group label {
+        position: absolute;
+        top: 50%;
+        left: 1rem;
+        transform: translateY(-50%);
+        color: #999;
+        font-size: 1rem;
+        pointer-events: none;
+        transition: all 0.2s ease;
+        font-weight: 500;
+    }
+    
+    .form-floating-group .input-icon {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #ccc;
+        transition: color 0.3s;
+        pointer-events: none;
+    }
+    
+    .form-floating-group .form-control:focus ~ .input-icon {
+        color: var(--accent-2);
+    }
+    
+    .password-strength {
+        height: 4px;
+        border-radius: 2px;
+        background: #eee;
+        margin-top: 0.5rem;
+        overflow: hidden;
+    }
+    
+    .password-strength-bar {
+        height: 100%;
+        width: 0%;
+        border-radius: 2px;
+        transition: all 0.3s ease;
+    }
+    
+    .password-strength-text {
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+        color: #999;
+    }
+    
+    .btn-gradient {
+        position: relative;
+        overflow: hidden;
+        padding: 1rem 2rem;
+        font-size: 1rem;
+    }
+    
+    .btn-gradient::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        transition: left 0.5s;
+    }
+    
+    .btn-gradient:hover::before {
+        left: 100%;
+    }
+    
+    .btn-gradient:disabled {
+        opacity: 0.7;
+    }
+    
+    .btn-gradient .spinner {
+        display: none;
+    }
+    
+    .btn-gradient.loading .btn-text {
+        display: none;
+    }
+    
+    .btn-gradient.loading .spinner {
+        display: inline-block;
+    }
+    
+    .benefits-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        margin: 2rem 0;
+    }
+    
+    .benefit-card {
+        padding: 1rem;
+        background: rgba(255,255,255,0.1);
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.1);
+        text-align: center;
+        transition: all 0.3s;
+    }
+    
+    .benefit-card:hover {
+        background: rgba(255,255,255,0.2);
+        transform: translateY(-4px);
+    }
+    
+    .benefit-icon {
+        width: 48px;
+        height: 48px;
+        margin: 0 auto 0.75rem;
+        background: rgba(255,255,255,0.2);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .benefit-card h6 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    
+    .benefit-card p {
+        font-size: 0.75rem;
+        opacity: 0.8;
+        margin: 0;
+    }
+    
+    .trust-indicators {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        justify-content: center;
+        margin-top: 2rem;
+    }
+    
+    .trust-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        opacity: 0.9;
+    }
+    
+    .trust-item i {
+        font-size: 1.25rem;
+    }
+    
+    .social-proof {
+        background: rgba(255,255,255,0.1);
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-top: 2rem;
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .social-proof h5 {
+        font-size: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .testimonial {
+        font-style: italic;
+        opacity: 0.9;
+        line-height: 1.6;
+    }
+    
+    .testimonial-author {
+        font-weight: 600;
+        margin-top: 0.5rem;
+        font-style: normal;
+    }
+    
+    @media (max-width: 991.98px) {
+        .benefits-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .form-check-input:checked {
+        background-color: var(--accent-2);
+        border-color: var(--accent-2);
+    }
+    
+    .form-check-input:focus {
+        box-shadow: 0 0 0 3px rgba(255,94,98,0.2);
+    }
+    
+    .divider {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin: 1.5rem 0;
+        color: #999;
+        font-size: 0.875rem;
+    }
+    
+    .divider::before,
+    .divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: #eee;
+    }
+    
+    .login-link {
+        font-weight: 600;
+        color: var(--accent-2);
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    
+    .login-link:hover {
+        color: var(--accent-1);
+        text-decoration: underline;
+    }
+    
+    #ngoLocationMap {
+        border: 2px dashed #eee;
+        transition: border-color 0.3s;
+    }
+    
+    #ngoLocationMap.map-ready {
+        border-style: solid;
+        border-color: var(--accent-2);
+    }
+    
+    .location-methods {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+    
+    .location-method-btn {
+        padding: 1rem;
+        background: #f8f9fa;
+        border: 2px solid #eee;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-align: center;
+    }
+    
+    .location-method-btn:hover {
+        border-color: var(--accent-2);
+        background: #fff5f5;
+    }
+    
+    .location-method-btn.active {
+        border-color: var(--accent-2);
+        background: linear-gradient(135deg, rgba(255,154,118,0.1), rgba(255,94,98,0.1));
+    }
+    
+    .location-method-btn i {
+        font-size: 1.5rem;
+        color: var(--accent-2);
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .location-method-btn span {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #333;
+    }
+    
+    .map-search-wrapper {
+        display: none;
+    }
+    
+    .map-search-wrapper.active {
+        display: block;
+        animation: slideDown 0.3s ease;
+    }
+    
+    @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .coordinate-display {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container auth-row auth-page">
+    <div class="floating-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+        <div class="shape shape-4"></div>
+    </div>
+    
+    <div class="row w-100 gx-0 align-items-stretch">
+        <!-- Info Panel -->
+        <div class="col-lg-7 d-flex align-items-center order-2 order-lg-1">
+            <div class="info-panel px-5 px-lg-6 py-5">
+                <!-- Animated Illustration -->
+                <div class="text-center mb-5" style="max-width: 400px; margin: 0 auto 3rem;">
+                    <div class="position-relative d-inline-block">
+                        <div class="bg-gradient rounded-circle d-flex align-items-center justify-content-center mx-auto mb-4" style="width: 120px; height: 120px; animation: pulseRing 3s ease-out infinite;">
+                            <i class="bi bi-people-fill fs-1 text-white"></i>
+                        </div>
+                        <div class="pulse-ring" style="width: 120px; height: 120px; top: 50%; left: 50%; transform: translate(-50%, -50%);"></div>
+                        <div class="pulse-ring" style="width: 120px; height: 120px; top: 50%; left: 50%; transform: translate(-50%, -50%); animation-delay: 1s;"></div>
+                        <div class="pulse-ring" style="width: 120px; height: 120px; top: 50%; left: 50%; transform: translate(-50%, -50%); animation-delay: 2s;"></div>
+                    </div>
+                </div>
+                
+                <div class="logo-badge mb-3">Partner with Us</div>
+                <h1 class="fw-bold mb-4" style="font-size: clamp(2rem, 4vw, 2.75rem); line-height: 1.1;">
+                    Join the Network<br>Saving Meals Daily
+                </h1>
+                <p class="lead mb-5" style="opacity: 0.95; max-width: 480px;">
+                    Register your NGO to receive instant alerts when events nearby have surplus food. 
+                    Coordinate pickups in real-time, track your impact, and feed more families.
+                </p>
+                
+                <!-- Benefits Grid -->
+                <div class="benefits-grid">
+                    <div class="benefit-card">
+                        <div class="benefit-icon">
+                            <i class="bi bi-bell-fill fs-4"></i>
+                        </div>
+                        <h6>Instant Alerts</h6>
+                        <p>Real-time notifications for nearby food</p>
+                    </div>
+                    <div class="benefit-card">
+                        <div class="benefit-icon">
+                            <i class="bi bi-map-fill fs-4"></i>
+                        </div>
+                        <h6>Map View</h6>
+                        <p>See all donations on interactive map</p>
+                    </div>
+                    <div class="benefit-card">
+                        <div class="benefit-icon">
+                            <i class="bi bi-check-circle-fill fs-4"></i>
+                        </div>
+                        <h6>One-Click Accept</h6>
+                        <p>Claim pickups with a single tap</p>
+                    </div>
+                    <div class="benefit-card">
+                        <div class="benefit-icon">
+                            <i class="bi bi-graph-up fs-4"></i>
+                        </div>
+                        <h6>Impact Tracking</h6>
+                        <p>Monitor meals saved & families fed</p>
+                    </div>
+                </div>
+                
+                <!-- Trust Indicators -->
+                <div class="trust-indicators">
+                    <div class="trust-item">
+                        <i class="bi bi-shield-check text-success"></i>
+                        <span>Verified Organizers</span>
+                    </div>
+                    <div class="trust-item">
+                        <i class="bi bi-geo-alt text-info"></i>
+                        <span>Location-Based</span>
+                    </div>
+                    <div class="trust-item">
+                        <i class="bi bi-award text-warning"></i>
+                        <span>Top-Rated Network</span>
+                    </div>
+                </div>
+                
+                <!-- Social Proof -->
+                <div class="social-proof">
+                    <h5><i class="bi bi-star-fill text-warning me-2"></i>Trusted by NGOs</h5>
+                    <div class="testimonial">
+                        "We used to miss donations because we didn't know about them in time. 
+                        Now we get alerts the moment food is posted nearby. Our pickup efficiency 
+                        has tripled since joining."
+                    </div>
+                    <div class="testimonial-author">— Maria Santos, Hope Food Bank Director</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Form Panel -->
+        <div class="col-lg-5 d-flex align-items-center justify-content-center order-1 order-lg-2">
+            <div class="w-100" style="max-width: 480px; padding: 2rem 1.5rem;">
+                <div class="card-auth p-4 p-lg-5">
+                    <div class="text-center mb-4">
+                        <h3 class="fw-bold mb-1">Register Your NGO</h3>
+                        <p class="text-muted">Start receiving food donations today</p>
+                    </div>
+                    
+                    {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        <div class="mb-4">
+                            {% for message in messages %}
+                                <div class="alert alert-info alert-dismissible fade show py-2" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    {% endwith %}
+                    
+                    <form action="{{ url_for('ngo_signup') }}" method="POST" novalidate id="signupForm">
+                        <div class="form-floating-group">
+                            <input type="text" name="name" id="name" class="form-control" placeholder=" " required autocomplete="organization">
+                            <label for="name">NGO Name</label>
+                            <i class="bi bi-building input-icon"></i>
+                        </div>
+                        
+                        <div class="form-floating-group">
+                            <input type="email" name="email" id="email" class="form-control" placeholder=" " required autocomplete="email">
+                            <label for="email">Email Address</label>
+                            <i class="bi bi-envelope input-icon"></i>
+                        </div>
+                        
+                        <div class="form-floating-group">
+                            <input type="tel" name="phone" id="phone" class="form-control" placeholder=" " required autocomplete="tel">
+                            <label for="phone">Contact Phone</label>
+                            <i class="bi bi-phone input-icon"></i>
+                        </div>
+                        
+                        <!-- Location Section -->
+                        <div class="mb-4">
+                            <label class="form-label fw-medium">Service Location <span class="text-danger">*</span></label>
+                            <p class="text-muted small mb-3">Choose how to set your pickup location</p>
+                            
+                            <div class="location-methods">
+                                <button type="button" class="location-method-btn active" data-method="gps" onclick="selectLocationMethod('gps')">
+                                    <i class="bi bi-geo-alt-fill"></i>
+                                    <span>Use My Location</span>
+                                </button>
+                                <button type="button" class="location-method-btn" data-method="map" onclick="selectLocationMethod('map')">
+                                    <i class="bi bi-map"></i>
+                                    <span>Pick on Map</span>
+                                </button>
+                                <button type="button" class="location-method-btn" data-method="search" onclick="selectLocationMethod('search')">
+                                    <i class="bi bi-search"></i>
+                                    <span>Search Address</span>
+                                </button>
+                                <button type="button" class="location-method-btn" data-method="manual" onclick="selectLocationMethod('manual')">
+                                    <i class="bi bi-pencil"></i>
+                                    <span>Enter Manually</span>
+                                </button>
+                            </div>
+                            
+                            <!-- GPS Method -->
+                            <div class="map-search-wrapper active" id="gpsWrapper">
+                                <div class="d-grid mb-2">
+                                    <button type="button" class="btn-report" id="getLocationBtn">
+                                        <i class="bi bi-geo-alt-fill me-2"></i> Detect My Current Location
+                                    </button>
+                                </div>
+                                <small id="locationStatus" class="text-muted d-block mb-2">Click the button above to auto-detect your location</small>
+                            </div>
+                            
+                            <!-- Map Method -->
+                            <div class="map-search-wrapper" id="mapWrapper">
+                                <div id="ngoLocationMap" style="height: 200px; border-radius: 12px;"></div>
+                                <small class="text-muted d-block mt-2">Click anywhere on the map to set your location</small>
+                            </div>
+                            
+                            <!-- Search Method -->
+                            <div class="map-search-wrapper" id="searchWrapper">
+                                <div class="input-group mb-2">
+                                    <input type="text" class="form-control" id="addressSearch" placeholder="Enter address, landmark, or area name...">
+                                    <button type="button" class="btn btn-outline-custom" id="searchAddressBtn">
+                                        <i class="bi bi-search"></i> Search
+                                    </button>
+                                </div>
+                                <small class="text-muted">We'll geocode the address to coordinates</small>
+                            </div>
+                            
+                            <!-- Manual Method -->
+                            <div class="map-search-wrapper" id="manualWrapper">
+                                <div class="coordinate-display">
+                                    <div class="form-floating-group" style="margin-bottom: 0;">
+                                        <input type="text" name="latitude" id="latitude" class="form-control" placeholder=" " readonly required>
+                                        <label for="latitude">Latitude</label>
+                                    </div>
+                                    <div class="form-floating-group" style="margin-bottom: 0;">
+                                        <input type="text" name="longitude" id="longitude" class="form-control" placeholder=" " readonly required>
+                                        <label for="longitude">Longitude</label>
+                                    </div>
+                                </div>
+                                <small class="text-muted d-block mt-2">Enter coordinates manually (e.g., 28.6139, 77.2090)</small>
+                            </div>
+                        </div>
+                        
+                        <div class="form-floating-group">
+                            <input type="password" name="password" id="password" class="form-control" placeholder=" " required autocomplete="new-password">
+                            <label for="password">Create Password</label>
+                            <button type="button" class="input-icon" onclick="togglePassword('password', this)" style="background: none; border: none; padding: 0; color: #ccc;">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="password-strength" id="passwordStrength">
+                            <div class="password-strength-bar" id="passwordStrengthBar"></div>
+                        </div>
+                        <small class="password-strength-text" id="passwordStrengthText"></small>
+                        
+                        <div class="form-check mb-4">
+                            <input class="form-check-input" type="checkbox" name="terms" id="terms" required>
+                            <label class="form-check-label small" for="terms">
+                                I agree to the <a href="#" class="text-decoration-none">Terms of Service</a> and 
+                                <a href="#" class="text-decoration-none">Privacy Policy</a> • Verified NGOs only
+                            </label>
+                        </div>
+                        
+                        <div class="d-grid mb-4">
+                            <button type="submit" class="btn btn-primary btn-primary-custom btn-gradient" id="submitBtn">
+                                <span class="btn-text"><i class="bi bi-people-fill me-2"></i>Register NGO & Join Network</span>
+                                <span class="spinner"><i class="bi bi-arrow-clockwise spin"></i></span>
+                            </button>
+                        </div>
+                        
+<div class="divider">or</div>
+                    </form>
+                    
+                    <div class="text-center mb-3">
+                        <a href="{{ url_for('ngo_login') }}" class="btn btn-primary btn-primary-custom btn-gradient px-5 py-3">
+                            <i class="bi bi-box-arrow-in-right me-2"></i> Already registered? Sign In
+                        </a>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <small class="text-muted">
+                            By registering, you agree to our terms.<br>
+                            <strong>Free for verified NGOs</strong> • No hidden fees
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes pulseRing {
+        0% { box-shadow: 0 0 0 0 rgba(255,154,118,0.4); }
+        70% { box-shadow: 0 0 0 20px rgba(255,154,118,0); }
+        100% { box-shadow: 0 0 0 0 rgba(255,154,118,0); }
+    }
+    
+    .spin {
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+</style>
+
+<script>
+    let map = null;
+    let marker = null;
+    let currentMethod = 'gps';
+    
+    // Password visibility toggle
+    function togglePassword(inputId, btn) {
+        const input = document.getElementById(inputId);
+        const icon = btn.querySelector('i');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('bi-eye');
+            icon.classList.add('bi-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('bi-eye-slash');
+            icon.classList.add('bi-eye');
+        }
+    }
+    
+    // Password strength meter
+    const passwordInput = document.getElementById('password');
+    const strengthBar = document.getElementById('passwordStrengthBar');
+    const strengthText = document.getElementById('passwordStrengthText');
+    
+    passwordInput.addEventListener('input', function() {
+        const val = this.value;
+        let strength = 0;
+        
+        if (val.length >= 8) strength += 20;
+        if (/[a-z]/.test(val)) strength += 20;
+        if (/[A-Z]/.test(val)) strength += 20;
+        if (/[0-9]/.test(val)) strength += 20;
+        if (/[^A-Za-z0-9]/.test(val)) strength += 20;
+        
+        strengthBar.style.width = strength + '%';
+        
+        if (strength <= 20) {
+            strengthBar.style.background = '#dc3545';
+            strengthText.textContent = 'Very Weak - Add more characters';
+            strengthText.style.color = '#dc3545';
+        } else if (strength <= 40) {
+            strengthBar.style.background = '#fd7e14';
+            strengthText.textContent = 'Weak - Mix case and numbers';
+            strengthText.style.color = '#fd7e14';
+        } else if (strength <= 60) {
+            strengthBar.style.background = '#ffc107';
+            strengthText.textContent = 'Fair - Add symbols for strength';
+            strengthText.style.color = '#ffc107';
+        } else if (strength <= 80) {
+            strengthBar.style.background = '#20c997';
+            strengthText.textContent = 'Strong - Good password!';
+            strengthText.style.color = '#20c997';
+        } else {
+            strengthBar.style.background = '#198754';
+            strengthText.textContent = 'Very Strong - Excellent!';
+            strengthText.style.color = '#198754';
+        }
+    });
+    
+    // Location method selection
+    function selectLocationMethod(method) {
+        currentMethod = method;
+        
+        // Update button states
+        document.querySelectorAll('.location-method-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.method === method);
+        });
+        
+        // Show/hide wrappers
+        document.querySelectorAll('.map-search-wrapper').forEach(wrapper => {
+            wrapper.classList.toggle('active', wrapper.id === method + 'Wrapper');
+        });
+        
+        // Initialize map if map method selected
+        if (method === 'map' && !map) {
+            setTimeout(initMap, 100);
+        }
+    }
+    
+    // Initialize map
+    function initMap() {
+        if (map) return;
+        map = L.map('ngoLocationMap').setView([20.5937, 78.9629], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        
+        document.getElementById('ngoLocationMap').classList.add('map-ready');
+        
+        map.on('click', function(e) {
+            setMarker(e.latlng.lat, e.latlng.lng);
+        });
+    }
+    
+    // Set marker on map
+    function setMarker(lat, lng) {
+        document.getElementById('latitude').value = lat.toFixed(6);
+        document.getElementById('longitude').value = lng.toFixed(6);
+        document.getElementById('locationStatus').textContent = 'Location set on map ✓';
+        document.getElementById('locationStatus').style.color = '#28a745';
+        
+        if (marker) {
+            map.removeLayer(marker);
+        }
+        marker = L.marker([lat, lng], {
+            icon: L.divIcon({
+                className: 'custom-marker',
+                html: '<div style="width: 30px; height: 30px; background: var(--accent-gradient); border-radius: 50% 50% 50% 0; transform: rotate(-45deg); border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.3);"></div>',
+                iconSize: [30, 30],
+                iconAnchor: [15, 30]
+            })
+        }).addTo(map);
+        
+        map.setView([lat, lng], 15);
+    }
+    
+    // Get current location (GPS)
+    document.getElementById('getLocationBtn').addEventListener('click', function() {
+        const status = document.getElementById('locationStatus');
+        const btn = this;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> Detecting...';
+        status.textContent = "Fetching your location...";
+        status.style.color = '#6c757d';
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    setMarker(lat, lng);
+                    // Also update manual fields
+                    document.getElementById('latitude').value = lat.toFixed(6);
+                    document.getElementById('longitude').value = lng.toFixed(6);
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-geo-alt-fill me-2"></i> Detect My Current Location';
+                    status.textContent = "Location captured successfully!";
+                    status.style.color = '#28a745';
+                    showToast('Location captured successfully!', 'success');
+                },
+                function(error) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-geo-alt-fill me-2"></i> Detect My Current Location';
+                    let msg = 'Unable to fetch location. ';
+                    if (error.code === error.PERMISSION_DENIED) {
+                        msg += 'Please allow location permission in browser settings.';
+                    } else if (error.code === error.POSITION_UNAVAILABLE) {
+                        msg += 'Location information unavailable.';
+                    } else if (error.code === error.TIMEOUT) {
+                        msg += 'Request timed out.';
+                    }
+                    status.textContent = msg;
+                    status.style.color = '#dc3545';
+                    showToast(msg, 'error');
+                }
+            );
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-geo-alt-fill me-2"></i> Detect My Current Location';
+            status.textContent = "Geolocation not supported by your browser.";
+            status.style.color = '#dc3545';
+            showToast('Geolocation not supported by your browser.', 'error');
+        }
+    });
+    
+    // Search address
+    document.getElementById('searchAddressBtn').addEventListener('click', async function() {
+        const address = document.getElementById('addressSearch').value.trim();
+        if (!address) {
+            showToast('Please enter an address to search', 'warning');
+            return;
+        }
+        
+        this.disabled = true;
+        this.innerHTML = '<i class="bi bi-hourglass-split"></i> Searching...';
+        
+        try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`);
+            const data = await response.json();
+            if (data.length > 0) {
+                const lat = parseFloat(data[0].lat);
+                const lng = parseFloat(data[0].lon);
+                setMarker(lat, lng);
+                document.getElementById('latitude').value = lat.toFixed(6);
+                document.getElementById('longitude').value = lng.toFixed(6);
+                document.getElementById('locationStatus').textContent = `Found: ${data[0].display_name}`;
+                document.getElementById('locationStatus').style.color = '#28a745';
+                showToast('Location found and set!', 'success');
+            } else {
+                showToast('Location not found. Try a different search.', 'error');
+            }
+        } catch (error) {
+            showToast('Search failed. Please try again.', 'error');
+        } finally {
+            this.disabled = false;
+            this.innerHTML = '<i class="bi bi-search"></i> Search';
+        }
+    });
+    
+    // Enter key on search input
+    document.getElementById('addressSearch').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('searchAddressBtn').click();
+        }
+    });
+    
+    // Form submission with loading state
+    document.getElementById('signupForm').addEventListener('submit', function(e) {
+        if (!this.checkValidity()) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        this.classList.add('was-validated');
+        
+        if (this.checkValidity()) {
+            const btn = document.getElementById('submitBtn');
+            btn.classList.add('loading');
+            btn.disabled = true;
+        }
+    });
+    
+    // Floating label enhancement
+    document.querySelectorAll('.form-floating-group .form-control').forEach(input => {
+        input.addEventListener('focus', function() {
+            this.parentElement.classList.add('focused');
+        });
+        input.addEventListener('blur', function() {
+            this.parentElement.classList.remove('focused');
+        });
+        if (input.value) {
+            input.parentElement.classList.add('has-value');
+        }
+        input.addEventListener('input', function() {
+            if (this.value) this.parentElement.classList.add('has-value');
+            else this.parentElement.classList.remove('has-value');
+        });
+    });
+    
+    // Manual coordinate input sync
+    document.getElementById('latitude').addEventListener('input', syncManualCoords);
+    document.getElementById('longitude').addEventListener('input', syncManualCoords);
+    
+    function syncManualCoords() {
+        const lat = parseFloat(document.getElementById('latitude').value);
+        const lng = parseFloat(document.getElementById('longitude').value);
+        if (!isNaN(lat) && !isNaN(lng) && map) {
+            setMarker(lat, lng);
+        }
+    }
+    
+    // Entrance animations
+    document.addEventListener('DOMContentLoaded', function() {
+        const elements = document.querySelectorAll('.benefit-card, .trust-item, .social-proof');
+        elements.forEach((el, i) => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(20px)';
+            el.style.transition = 'all 0.5s ease';
+            setTimeout(() => {
+                el.style.opacity = '1';
+                el.style.transform = 'translateY(0)';
+            }, 300 + i * 100);
+        });
+    });
+</script>
+{% endblock %}

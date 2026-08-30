@@ -1,0 +1,1014 @@
+{% extends "base.html" %}
+
+{% block title %}NGO Dashboard - Food Donation Connect{% endblock %}
+
+{% block extra_css %}
+<style>
+    #map { height: 400px; border-radius: 12px; }
+    .map-toggle { transition: all 0.2s; }
+    .listing-card-map { cursor: pointer; }
+    .listing-card-map:hover { border-color: var(--accent-2, #ff5e62) !important; }
+    
+    .filter-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        background: rgba(255,255,255,0.15);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 50px;
+        color: white;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .filter-chip.active, .filter-chip:hover {
+        background: white;
+        color: var(--accent-2, #ff5e62);
+    }
+    .filter-chip i { font-size: 12px; }
+    
+    /* Dietary category filter chips */
+    .dietary-filter-bar {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        padding: 16px 20px;
+        margin-bottom: 24px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .dietary-filter-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 50px;
+        color: #495057;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+    }
+    .dietary-filter-chip:hover {
+        border-color: var(--accent-2, #ff5e62);
+        background: #fff5f5;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255,94,98,0.15);
+    }
+    .dietary-filter-chip.active {
+        background: linear-gradient(135deg, var(--accent-1, #ff9966), var(--accent-2, #ff5e62));
+        color: white;
+        border-color: transparent;
+        box-shadow: 0 4px 16px rgba(255,94,98,0.35);
+    }
+    .dietary-filter-chip.active:hover {
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 0 6px 20px rgba(255,94,98,0.4);
+        color: white;
+    }
+    
+    /* Empty state styling */
+    .empty-state {
+        color: #333 !important;
+        text-align: center;
+        padding: 40px 20px;
+    }
+    .empty-state i { 
+        font-size: 2.5rem;
+        opacity: 0.5;
+        margin-bottom: 12px;
+        display: inline-block;
+    }
+    .empty-state h5 { color: #333; margin-bottom: 8px; font-weight: 600; }
+    .empty-state p { color: #666; margin-bottom: 0; }
+    
+    /* Tab styles */
+    .tab-btn {
+        padding: 10px 24px;
+        background: rgba(255,255,255,0.15);
+        border: 1px solid rgba(255,255,255,0.2);
+        color: white;
+        border-radius: 50px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .tab-btn.active {
+        background: white;
+        color: var(--accent-2, #ff5e62);
+    }
+    .tab-btn:hover:not(.active) {
+        background: rgba(255,255,255,0.25);
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.2s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .btn-complete {
+        background: #20c997;
+        border: none;
+        color: white;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+    .btn-complete:hover {
+        background: #1aa685;
+        color: white;
+    }
+    .btn-complete.completed {
+        background: #6c757d;
+        cursor: not-allowed;
+    }
+
+    .btn-report {
+        background: transparent;
+        border: 1px solid #dc3545;
+        color: #dc3545;
+        border-radius: 8px;
+        padding: 8px 16px;
+        transition: all 0.2s;
+    }
+    .btn-report:hover {
+        background: #dc3545;
+        color: white;
+    }
+    
+    @media (max-width: 768px) {
+        #map { height: 300px; }
+        .dietary-filter-bar { padding: 12px 16px; }
+        .dietary-filter-chip { padding: 6px 12px; font-size: 12px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Top Bar -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold text-white mb-1">NGO Dashboard</h2>
+            <p class="text-white-50 mb-0" id="locationInfo">Manage food pickups and discover nearby donations</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-custom map-toggle px-4" id="toggleMapView" type="button">
+                <i class="bi bi-map me-2"></i> Map View
+            </button>
+            <button class="btn-gradient px-4" id="refreshBtn" type="button">
+                <i class="bi bi-arrow-clockwise me-2"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Navigation Tabs -->
+    <div class="d-flex gap-2 mb-4" role="tablist">
+        <button class="tab-btn active" data-tab="nearby" type="button">
+            <i class="bi bi-geo-alt me-1"></i> Nearby Donations
+        </button>
+        <button class="tab-btn" data-tab="my-pickups" type="button">
+            <i class="bi bi-bag-check me-1"></i> My Pickups
+        </button>
+    </div>
+
+    <!-- Distance Filters (only for nearby tab) -->
+    <div class="d-flex flex-wrap gap-2 mb-4" role="group" aria-label="Distance filters" id="distanceFilters">
+        <span class="filter-chip" data-distance="5"><i class="bi bi-slash-circle"></i> 5 km</span>
+        <span class="filter-chip" data-distance="10"><i class="bi bi-slash-circle"></i> 10 km</span>
+        <span class="filter-chip" data-distance="15"><i class="bi bi-slash-circle"></i> 15 km</span>
+        <span class="filter-chip" data-distance="50"><i class="bi bi-slash-circle"></i> 50 km</span>
+    </div>
+
+    <!-- Dietary Category Filter Bar -->
+    <div class="dietary-filter-bar" id="dietaryFilterBar" role="group" aria-label="Dietary category filters">
+        <span class="dietary-filter-chip active" data-category="all">All</span>
+        <span class="dietary-filter-chip" data-category="High Protein">High Protein</span>
+        <span class="dietary-filter-chip" data-category="Carbohydrate / Staple Energy">Carb / Staple Energy</span>
+        <span class="dietary-filter-chip" data-category="Fiber-Rich / Whole Grains & Pulses">Fiber-Rich</span>
+        <span class="dietary-filter-chip" data-category="Vitamin-Rich Produce">Vitamin-Rich</span>
+        <span class="dietary-filter-chip" data-category="Calcium-Rich / Dairy">Calcium-Rich / Dairy</span>
+        <span class="dietary-filter-chip" data-category="Iron-Rich">Iron-Rich</span>
+        <span class="dietary-filter-chip" data-category="Healthy Fats">Healthy Fats</span>
+        <span class="dietary-filter-chip" data-category="Balanced / Thali-style or Mixed Meal">Balanced / Thali</span>
+        <span class="dietary-filter-chip" data-category="Vegetarian (No Egg, No Meat)">Vegetarian</span>
+        <span class="dietary-filter-chip" data-category="Eggetarian">Eggetarian</span>
+        <span class="dietary-filter-chip" data-category="Non-Vegetarian">Non-Vegetarian</span>
+        <span class="dietary-filter-chip" data-category="Halal">Halal</span>
+        <span class="dietary-filter-chip" data-category="Jain-Friendly">Jain-Friendly</span>
+        <span class="dietary-filter-chip" data-category="Vegan / Plant-Based">Vegan</span>
+        <span class="dietary-filter-chip" data-category="No Beef / No Pork">No Beef / No Pork</span>
+        <span class="dietary-filter-chip" data-category="Festival / Special Occasion Food">Festival</span>
+        <span class="dietary-filter-chip" data-category="Custom / Other">Custom</span>
+    </div>
+
+    <!-- Map View (hidden by default) -->
+    <div class="card-custom mb-4 d-none" id="mapView">
+        <div id="map"></div>
+    </div>
+
+    <!-- Nearby Listings Tab -->
+    <div class="tab-content active" id="tab-nearby">
+        <div class="row g-3" id="listingsContainer">
+            {% if nearby_listings|length == 0 %}
+            <div class="col-12" id="initialEmptyState">
+                <div class="card-custom empty-state">
+                    <i class="bi bi-geo-alt"></i>
+                    <h5>No surplus food nearby</h5>
+                    <p>No listings within your selected radius. Try expanding the distance or check back soon!</p>
+                </div>
+            </div>
+            {% else %}
+            {% for entry in nearby_listings %}
+            {% set dietary_display = entry.listing.dietary_category_other if entry.listing.dietary_category == 'Custom / Other' and entry.listing.dietary_category_other else entry.listing.dietary_category %}
+            <div class="col-md-6 col-lg-4 listing-item"
+                 data-id="{{ entry.listing.id }}"
+                 data-food-type="{{ entry.listing.food_type }}"
+                 data-quantity="{{ entry.listing.quantity }}"
+                 data-location="{{ entry.listing.pickup_location }}"
+                 data-expiry="{{ entry.listing.expiry_time.strftime('%Y-%m-%d %H:%M') if entry.listing.expiry_time else '' }}"
+                 data-expiry-display="{{ entry.listing.expiry_time.strftime('%b %d, %Y %H:%M') if entry.listing.expiry_time else 'N/A' }}"
+                 data-distance="{{ entry.distance }}"
+                 data-organizer-name="{{ entry.listing.organizer.name if entry.listing.organizer else '' }}"
+                 data-organizer-id="{{ entry.listing.organizer.id if entry.listing.organizer else 0 }}"
+                 data-category="{{ dietary_display or '' }}"
+                 data-allergens="{{ entry.listing.allergens or '' }}"
+                 data-lat="{{ entry.listing.latitude if entry.listing.latitude is defined and entry.listing.latitude else 0 }}"
+                 data-lng="{{ entry.listing.longitude if entry.listing.longitude is defined and entry.listing.longitude else 0 }}">
+                <div class="card-custom listing-card listing-card-map {% if loop.index <= 3 %}new{% endif %}" data-action="details">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="mb-0">{{ entry.listing.food_type }}</h5>
+                        <span class="distance-badge">{{ "%.1f"|format(entry.distance) }} km</span>
+                    </div>
+                    <div class="mb-2"><i class="bi bi-tag text-muted me-1"></i><strong> Quantity:</strong> {{ entry.listing.quantity }}</div>
+                    <div class="mb-2"><i class="bi bi-geo-alt text-muted me-1"></i><strong> Location:</strong> {{ entry.listing.pickup_location }}</div>
+                    <div class="mb-2"><i class="bi bi-clock text-muted me-1"></i><strong> Expires:</strong> {{ entry.listing.expiry_time.strftime('%b %d, %Y %H:%M') if entry.listing.expiry_time else 'N/A' }}</div>
+                    <div class="mb-2"><i class="bi bi-person text-muted me-1"></i><strong> From:</strong> {{ entry.listing.organizer.name if entry.listing.organizer else 'Organizer' }}</div>
+                    {% if dietary_display %}
+                    <div class="mb-2">
+                        <i class="bi bi-heart-pulse text-muted me-1"></i>
+                        <strong>Dietary:</strong>
+                        <span class="dietary-badge ms-2">{{ dietary_display }}</span>
+                    </div>
+                    {% endif %}
+                    {% if entry.listing.allergens %}
+                    <div class="mb-2 allergen-text">
+                        <i class="bi bi-exclamation-triangle text-warning me-1"></i>
+                        <strong>Contains:</strong> {{ entry.listing.allergens }}
+                    </div>
+                    {% endif %}
+                    <div class="d-flex gap-2 mt-3">
+                        <button type="button" class="btn-gradient flex-fill accept-btn" data-action="accept">
+                            <i class="bi bi-check-lg me-2"></i> Accept Pickup
+                        </button>
+                        <button type="button" class="btn-report flex-fill" data-action="report">
+                            <i class="bi bi-flag me-2"></i> Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+ 
+    <!-- My Pickups Tab -->
+    <div class="tab-content" id="tab-my-pickups">
+        <div class="row g-3" id="myPickupsContainer">
+            {% if my_pickups|length == 0 %}
+            <div class="col-12">
+                <div class="card-custom empty-state">
+                    <i class="bi bi-bag-check"></i>
+                    <h5>You haven't accepted any pickups yet</h5>
+                    <p>Accept a nearby donation to see it here.</p>
+                </div>
+            </div>
+            {% else %}
+            {% for listing in my_pickups %}
+            {% set dietary_display = listing.dietary_category_other if listing.dietary_category == 'Custom / Other' and listing.dietary_category_other else listing.dietary_category %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card-custom listing-card">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="mb-0">{{ listing.food_type }}</h5>
+                        <span class="badge-status badge-accepted">Accepted</span>
+                    </div>
+                    <div class="mb-2"><i class="bi bi-tag text-muted me-1"></i><strong> Quantity:</strong> {{ listing.quantity }}</div>
+                    <div class="mb-2"><i class="bi bi-geo-alt text-muted me-1"></i><strong> Location:</strong> {{ listing.pickup_location }}</div>
+                    <div class="mb-2"><i class="bi bi-clock text-muted me-1"></i><strong> Expires:</strong> {{ listing.expiry_time.strftime('%b %d, %Y %H:%M') if listing.expiry_time else 'N/A' }}</div>
+                    <div class="mb-2"><i class="bi bi-person text-muted me-1"></i><strong> From:</strong> {{ listing.organizer.name if listing.organizer else 'Organizer' }}</div>
+                    {% if dietary_display %}
+                    <div class="mb-2">
+                        <i class="bi bi-heart-pulse text-muted me-1"></i>
+                        <strong>Dietary:</strong>
+                        <span class="dietary-badge ms-2">{{ dietary_display }}</span>
+                    </div>
+                    {% endif %}
+                    {% if listing.allergens %}
+                    <div class="mb-2 allergen-text">
+                        <i class="bi bi-exclamation-triangle text-warning me-1"></i>
+                        <strong>Contains:</strong> {{ listing.allergens }}
+                    </div>
+                    {% endif %}
+                    <button type="button" class="btn-complete w-100 mt-3" data-action="complete" data-listing-id="{{ listing.id }}">
+                        <i class="bi bi-check2-all me-2"></i> Mark Completed
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+ 
+<!-- Listing Details Modal -->
+<div class="modal fade" id="listingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 16px; border: none;">
+            <div class="modal-header" style="border-bottom: 1px solid #eee;">
+                <h5 class="modal-title fw-bold" id="modalTitle">Food Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+            <div class="modal-footer" style="border-top: 1px solid #eee;">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn-gradient" id="modalAcceptBtn">
+                    <i class="bi bi-check-lg me-2"></i> Accept Pickup
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Report Modal -->
+<div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 16px; border: none;">
+            <div class="modal-header" style="border-bottom: 1px solid #eee;">
+                <h5 class="modal-title fw-bold" id="reportModalTitle">Report Organizer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Reporting: <span id="reportOrganizerName" class="text-primary"></span></label>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="reportReason">Reason for Report</label>
+                    <select class="form-select" id="reportReason">
+                        <option value="">Select a reason</option>
+                        <option value="fake_listing">Fake/Non-existent food listing</option>
+                        <option value="food_quality">Poor food quality / unsafe food</option>
+                        <option value="no_show">Organizer didn't show up for pickup</option>
+                        <option value="misleading_info">Misleading information (quantity, location, type)</option>
+                        <option value="harassment">Harassment or inappropriate behavior</option>
+                        <option value="fraud">Suspected fraud or scam</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="reportDetails">Additional Details (Optional)</label>
+                    <textarea class="form-control" id="reportDetails" rows="3" placeholder="Describe what happened..."></textarea>
+                </div>
+                <div class="alert alert-warning small mb-0">
+                    <i class="bi bi-info-circle me-1"></i> Your report will be reviewed. If multiple NGOs report the same organizer, they may be automatically blocked from posting.
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid #eee;">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="submitReportBtn">
+                    <i class="bi bi-flag me-2"></i> Submit Report
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let map = null;
+    let markers = [];
+    let currentFilterDistance = Infinity;
+    let currentFilterCategory = 'all';
+    let allListings = [];
+    let listingsRefreshInterval = null;
+    let modalListingId = null;
+    let currentTab = 'nearby';
+    let reportModalInstance = null;
+    let currentReportListingId = null;
+    let currentReportOrganizerId = null;
+
+    function formatDateTime(dateStr) {
+        if (!dateStr) return 'N/A';
+        try {
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' ' + 
+                   d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+        } catch (e) {
+            return dateStr;
+        }
+    }
+
+    async function apiRequest(url, options = {}) {
+        if (typeof window.apiRequest === 'function' && window.apiRequest !== apiRequest) {
+            return window.apiRequest(url, options);
+        }
+        const defaultHeaders = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        };
+        const response = await fetch(url, {
+            ...options,
+            headers: { ...defaultHeaders, ...(options.headers || {}) }
+        });
+        const json = await response.json();
+        if (!response.ok) {
+            throw new Error(json.message || `Request failed with status ${response.status}`);
+        }
+        return json;
+    }
+
+    function showToast(message, type = 'info') {
+        if (typeof window.showToast === 'function' && window.showToast !== showToast) {
+            window.showToast(message, type);
+            return;
+        }
+        console.log(`[${type.toUpperCase()}]: ${message}`);
+    }
+
+    function initMap() {
+        if (map || typeof L === 'undefined') return;
+        const mapElement = document.getElementById('map');
+        if (!mapElement) return;
+
+        map = L.map('map').setView([20.5937, 78.9629], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+    }
+
+    function parseInitialListingsFromDOM() {
+        const items = document.querySelectorAll('#listingsContainer .listing-item');
+        return Array.from(items).map(item => ({
+            id: parseInt(item.dataset.id, 10),
+            food_type: item.dataset.foodType || '',
+            quantity: item.dataset.quantity || '',
+            pickup_location: item.dataset.location || '',
+            expiry_time: item.dataset.expiry || '',
+            distance: parseFloat(item.dataset.distance) || 0,
+            organizer_name: item.dataset.organizerName || '',
+            organizer_id: parseInt(item.dataset.organizerId, 10) || 0,
+            dietary_category: item.dataset.category || '',
+            allergens: item.dataset.allergens || '',
+            latitude: parseFloat(item.dataset.lat) || 0,
+            longitude: parseFloat(item.dataset.lng) || 0
+        }));
+    }
+
+    function initializeDashboard() {
+        allListings = parseInitialListingsFromDOM();
+        allListings.sort((a, b) => a.distance - b.distance);
+
+        document.getElementById('toggleMapView')?.addEventListener('click', function() {
+            const mapView = document.getElementById('mapView');
+            if (!mapView) return;
+
+            const isHidden = mapView.classList.contains('d-none');
+            mapView.classList.toggle('d-none');
+            this.innerHTML = isHidden
+                ? '<i class="bi bi-list-ul me-2"></i> List View'
+                : '<i class="bi bi-map me-2"></i> Map View';
+
+            if (isHidden) {
+                setTimeout(() => {
+                    initMap();
+                    updateMapMarkers();
+                    if (map) map.invalidateSize();
+                }, 150);
+            }
+        });
+
+        document.getElementById('refreshBtn')?.addEventListener('click', refreshCurrentTab);
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                switchTab(this.dataset.tab);
+            });
+        });
+
+        document.querySelectorAll('.filter-chip').forEach(chip => {
+            chip.addEventListener('click', function() {
+                const isActive = this.classList.contains('active');
+                document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+                
+                if (isActive) {
+                    currentFilterDistance = Infinity;
+                } else {
+                    this.classList.add('active');
+                    currentFilterDistance = parseFloat(this.dataset.distance);
+                }
+                filterListings();
+                updateMapMarkers();
+            });
+        });
+
+        document.querySelectorAll('.dietary-filter-chip').forEach(chip => {
+            chip.addEventListener('click', function() {
+                document.querySelectorAll('.dietary-filter-chip').forEach(c => c.classList.remove('active'));
+                this.classList.add('active');
+                currentFilterCategory = this.dataset.category;
+                filterListings();
+            });
+        });
+
+        const listingsContainer = document.getElementById('listingsContainer');
+        listingsContainer?.addEventListener('click', function(e) {
+            const card = e.target.closest('.listing-item');
+            if (!card) return;
+
+            const listingId = parseInt(card.dataset.id, 10);
+            const acceptBtn = e.target.closest('[data-action="accept"]');
+            if (acceptBtn) {
+                e.stopPropagation();
+                acceptFood(listingId);
+                return;
+            }
+
+            const reportBtn = e.target.closest('[data-action="report"]');
+            if (reportBtn) {
+                e.stopPropagation();
+                const orgId = parseInt(card.dataset.organizerId, 10);
+                const orgName = card.dataset.organizerName;
+                showReportModal(listingId, orgId, orgName);
+                return;
+            }
+
+            const cardClick = e.target.closest('[data-action="details"]');
+            if (cardClick) {
+                showListingDetails(listingId);
+            }
+        });
+
+        const myPickupsContainer = document.getElementById('myPickupsContainer');
+        myPickupsContainer?.addEventListener('click', function(e) {
+            const completeBtn = e.target.closest('[data-action="complete"]');
+            if (completeBtn) {
+                const listingId = parseInt(completeBtn.dataset.listingId, 10);
+                completeFood(listingId);
+            }
+        });
+
+        document.getElementById('submitReportBtn')?.addEventListener('click', submitReport);
+
+        startAutoRefresh();
+    }
+
+    async function refreshListings() {
+        try {
+            showToast('Refreshing listings...', 'info');
+            const data = await apiRequest('/api/listings/nearby');
+            allListings = data.listings || [];
+            renderListings(allListings);
+            updateMapMarkers();
+            showToast(`Found ${allListings.length} nearby listings`, 'success');
+        } catch (error) {
+            console.error('Failed to refresh listings:', error);
+            showToast('Failed to refresh listings', 'error');
+        }
+    }
+
+    function renderListings(listings) {
+        const container = document.getElementById('listingsContainer');
+        if (!container) return;
+
+        const filtered = listings
+            .filter(l => l.distance <= currentFilterDistance)
+            .filter(l => currentFilterCategory === 'all' || l.dietary_category === currentFilterCategory)
+            .sort((a, b) => a.distance - b.distance);
+
+        if (filtered.length === 0) {
+            const categoryLabel = currentFilterCategory === 'all' ? 'this area' : currentFilterCategory;
+            container.innerHTML = `
+                <div class="col-12">
+                    <div class="card-custom empty-state">
+                        <i class="bi bi-funnel"></i>
+                        <h5>No listings found</h5>
+                        <p>No donations match ${categoryLabel}. Try adjusting your category or distance filters.</p>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = filtered.map((entry, index) => {
+            const dietaryDisplay = entry.dietary_category;
+            return `
+            <div class="col-md-6 col-lg-4 listing-item"
+                 data-id="${entry.id}"
+                 data-food-type="${entry.food_type || ''}"
+                 data-quantity="${entry.quantity || ''}"
+                 data-location="${entry.pickup_location || ''}"
+                 data-expiry="${entry.expiry_time || ''}"
+                 data-distance="${entry.distance}"
+                 data-organizer-name="${entry.organizer_name || ''}"
+                 data-organizer-id="${entry.organizer_id || 0}"
+                 data-category="${entry.dietary_category || ''}"
+                 data-allergens="${entry.allergens || ''}"
+                 data-lat="${entry.latitude || 0}"
+                 data-lng="${entry.longitude || 0}">
+                <div class="card-custom listing-card listing-card-map ${index <= 2 ? 'new' : ''}" data-action="details">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="mb-0">${entry.food_type}</h5>
+                        <span class="distance-badge">${Number(entry.distance).toFixed(1)} km</span>
+                    </div>
+                    <div class="mb-2"><i class="bi bi-tag text-muted me-1"></i><strong> Quantity:</strong> ${entry.quantity}</div>
+                    <div class="mb-2"><i class="bi bi-geo-alt text-muted me-1"></i><strong> Location:</strong> ${entry.pickup_location}</div>
+                    <div class="mb-2"><i class="bi bi-clock text-muted me-1"></i><strong> Expires:</strong> ${formatDateTime(entry.expiry_time)}</div>
+                    <div class="mb-2"><i class="bi bi-person text-muted me-1"></i><strong> From:</strong> ${entry.organizer_name}</div>
+                    ${dietaryDisplay ? `<div class="mb-2"><i class="bi bi-heart-pulse text-muted me-1"></i><strong> Dietary:</strong> <span class="dietary-badge ms-2">${dietaryDisplay}</span></div>` : ''}
+                    ${entry.allergens ? `<div class="mb-2 allergen-text"><i class="bi bi-exclamation-triangle text-warning me-1"></i><strong> Contains:</strong> ${entry.allergens}</div>` : ''}
+                    <div class="d-flex gap-2 mt-3">
+                        <button type="button" class="btn-gradient flex-fill accept-btn" data-action="accept">
+                            <i class="bi bi-check-lg me-2"></i> Accept Pickup
+                        </button>
+                        <button type="button" class="btn-report flex-fill" data-action="report">
+                            <i class="bi bi-flag me-2"></i> Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+            `;
+        }).join('');
+    }
+
+    function filterListings() {
+        let visibleCount = 0;
+        document.querySelectorAll('#listingsContainer .listing-item').forEach(item => {
+            const distance = parseFloat(item.dataset.distance);
+            const category = item.dataset.category;
+            const distanceMatch = isNaN(distance) || distance <= currentFilterDistance;
+            const categoryMatch = currentFilterCategory === 'all' || category === currentFilterCategory;
+            
+            if (distanceMatch && categoryMatch) {
+                item.style.display = 'block';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        const container = document.getElementById('listingsContainer');
+        let emptyState = document.getElementById('emptyFilterMessage');
+
+        if (visibleCount === 0) {
+            const categoryLabel = currentFilterCategory === 'all' ? 'your filter criteria' : currentFilterCategory;
+            if (!emptyState) {
+                emptyState = document.createElement('div');
+                emptyState.id = 'emptyFilterMessage';
+                emptyState.className = 'col-12';
+                emptyState.innerHTML = `
+                    <div class="card-custom empty-state">
+                        <i class="bi bi-funnel"></i>
+                        <h5>No listings match ${categoryLabel}</h5>
+                        <p>Try selecting a different category or expanding the distance filter.</p>
+                    </div>
+                `;
+                container.appendChild(emptyState);
+            } else {
+                emptyState.style.display = 'block';
+                emptyState.querySelector('h5').textContent = `No listings match ${categoryLabel}`;
+            }
+        } else if (emptyState) {
+            emptyState.style.display = 'none';
+        }
+    }
+
+    function updateMapMarkers() {
+        if (!map || typeof L === 'undefined') return;
+
+        markers.forEach(m => map.removeLayer(m));
+        markers = [];
+
+        const filtered = allListings.filter(l => l.distance <= currentFilterDistance && (currentFilterCategory === 'all' || l.dietary_category === currentFilterCategory));
+        if (filtered.length === 0) return;
+
+        filtered.forEach(entry => {
+            const lat = entry.latitude || 20.5937;
+            const lng = entry.longitude || 78.9629;
+            const marker = L.marker([lat, lng])
+                .bindPopup(`
+                    <div style="min-width: 140px;">
+                        <strong>${entry.food_type}</strong><br>
+                        <span>${entry.quantity}</span><br>
+                        <small class="text-muted">${entry.pickup_location}</small><br>
+                        <strong>${Number(entry.distance).toFixed(1)} km away</strong>
+                    </div>
+                `);
+            markers.push(marker);
+            marker.addTo(map);
+        });
+
+        if (markers.length > 0) {
+            const group = new L.featureGroup(markers);
+            map.fitBounds(group.getBounds().pad(0.1));
+        }
+    }
+
+    async function acceptFood(listingId) {
+        const modalEl = document.getElementById('listingModal');
+        if (modalEl && typeof bootstrap !== 'undefined') {
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+        }
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+
+        const itemEl = document.querySelector(`.listing-item[data-id="${listingId}"]`);
+        const btn = itemEl?.querySelector('[data-action="accept"]');
+        const originalText = btn?.innerHTML;
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> Accepting...';
+        }
+
+        try {
+            const data = await apiRequest(`/api/food/accept/${listingId}`, { method: 'POST' });
+            showToast(data.message || 'Pickup accepted successfully!', 'success');
+
+            allListings = allListings.filter(l => l.id !== listingId);
+            renderListings(allListings);
+            updateMapMarkers();
+        } catch (error) {
+            showToast(error.message, 'error');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+    }
+
+    function showListingDetails(listingId) {
+        const entry = allListings.find(l => l.id === listingId);
+        if (!entry) return;
+
+        modalListingId = listingId;
+        document.getElementById('modalTitle').textContent = entry.food_type;
+        const dietaryDisplay = entry.dietary_category;
+
+        document.getElementById('modalBody').innerHTML = `
+            <div class="row g-3">
+                <div class="col-6">
+                    <div class="p-3 bg-light rounded">
+                        <small class="text-muted">Quantity</small>
+                        <div class="fw-bold">${entry.quantity}</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="p-3 bg-light rounded">
+                        <small class="text-muted">Distance</small>
+                        <div class="fw-bold">${Number(entry.distance).toFixed(1)} km</div>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="p-3 bg-light rounded">
+                        <small class="text-muted">Pickup Location</small>
+                        <div class="fw-bold">${entry.pickup_location}</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="p-3 bg-light rounded">
+                        <small class="text-muted">Expires</small>
+                        <div class="fw-bold">${formatDateTime(entry.expiry_time)}</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="p-3 bg-light rounded">
+                        <small class="text-muted">From</small>
+                        <div class="fw-bold">${entry.organizer_name}</div>
+                    </div>
+                </div>
+                ${dietaryDisplay ? `<div class="col-12"><div class="p-3 bg-light rounded"><small class="text-muted">Dietary Category</small><div class="fw-bold"><span class="dietary-badge">${dietaryDisplay}</span></div></div></div>` : ''}
+                ${entry.allergens ? `<div class="col-12"><div class="p-3 bg-light rounded"><small class="text-muted">Allergens</small><div class="fw-bold allergen-text"><i class="bi bi-exclamation-triangle text-warning me-1"></i>Contains: ${entry.allergens}</div></div></div>` : ''}
+            </div>
+        `;
+
+        document.getElementById('modalAcceptBtn').onclick = () => {
+            const modalEl = document.getElementById('listingModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+            acceptFood(listingId);
+        };
+
+        const modalInstance = new bootstrap.Modal(document.getElementById('listingModal'));
+        modalInstance.show();
+    }
+
+    function showReportModal(listingId, organizerId, organizerName) {
+        currentReportListingId = listingId;
+        currentReportOrganizerId = organizerId;
+        
+        document.getElementById('reportOrganizerName').textContent = organizerName || 'Organizer';
+        document.getElementById('reportReason').value = '';
+        document.getElementById('reportDetails').value = '';
+        
+        const modalEl = document.getElementById('reportModal');
+        if (!reportModalInstance) {
+            reportModalInstance = new bootstrap.Modal(modalEl);
+        }
+        reportModalInstance.show();
+    }
+
+    async function submitReport() {
+        const reason = document.getElementById('reportReason').value;
+        const details = document.getElementById('reportDetails').value;
+        
+        if (!reason) {
+            showToast('Please select a reason for the report', 'warning');
+            return;
+        }
+
+        const btn = document.getElementById('submitReportBtn');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> Submitting...';
+
+        try {
+            const data = await apiRequest('/api/report/organizer', {
+                method: 'POST',
+                body: JSON.stringify({
+                    organizer_id: currentReportOrganizerId,
+                    listing_id: currentReportListingId,
+                    reason: reason,
+                    details: details
+                })
+            });
+            
+            showToast(data.message || 'Report submitted successfully.', 'success');
+            if (reportModalInstance) reportModalInstance.hide();
+        } catch (error) {
+            showToast(error.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+
+    function switchTab(tabName) {
+        currentTab = tabName;
+        
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === tabName);
+        });
+        
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.toggle('active', content.id === `tab-${tabName}`);
+        });
+        
+        const distanceFilters = document.getElementById('distanceFilters');
+        const dietaryFilterBar = document.getElementById('dietaryFilterBar');
+        if (distanceFilters) distanceFilters.style.display = tabName === 'nearby' ? 'flex' : 'none';
+        if (dietaryFilterBar) dietaryFilterBar.style.display = tabName === 'nearby' ? 'flex' : 'none';
+        
+        if (tabName === 'my-pickups') {
+            loadMyPickups();
+        }
+    }
+
+    async function loadMyPickups() {
+        const container = document.getElementById('myPickupsContainer');
+        if (!container) return;
+        
+        container.innerHTML = `
+            <div class="col-12 text-center py-5">
+                <div class="spinner-border text-white" role="status"></div>
+                <p class="text-white-50 mt-2">Loading your pickups...</p>
+            </div>
+        `;
+        
+        try {
+            const data = await apiRequest('/api/listings/my-accepted');
+            renderMyPickups(data.listings || []);
+        } catch (error) {
+            console.error('Failed to load pickups:', error);
+            container.innerHTML = `
+                <div class="col-12">
+                    <div class="card-custom empty-state">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <h5>Failed to load pickups</h5>
+                        <p>${error.message}</p>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    function renderMyPickups(listings) {
+        const container = document.getElementById('myPickupsContainer');
+        if (!container) return;
+        
+        if (listings.length === 0) {
+            container.innerHTML = `
+                <div class="col-12">
+                    <div class="card-custom empty-state">
+                        <i class="bi bi-bag-check"></i>
+                        <h5>You haven't accepted any pickups yet</h5>
+                        <p>Accept a nearby donation to see it here.</p>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = listings.map(entry => {
+            const dietaryDisplay = entry.dietary_category;
+            return `
+            <div class="col-md-6 col-lg-4">
+                <div class="card-custom listing-card">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="mb-0">${entry.food_type}</h5>
+                        <span class="badge-status badge-accepted">Accepted</span>
+                    </div>
+                    <div class="mb-2"><i class="bi bi-tag text-muted me-1"></i><strong> Quantity:</strong> ${entry.quantity}</div>
+                    <div class="mb-2"><i class="bi bi-geo-alt text-muted me-1"></i><strong> Location:</strong> ${entry.pickup_location}</div>
+                    <div class="mb-2"><i class="bi bi-clock text-muted me-1"></i><strong> Expires:</strong> ${formatDateTime(entry.expiry_time)}</div>
+                    <div class="mb-2"><i class="bi bi-person text-muted me-1"></i><strong> From:</strong> ${entry.organizer_name}</div>
+                    ${dietaryDisplay ? `<div class="mb-2"><i class="bi bi-heart-pulse text-muted me-1"></i><strong> Dietary:</strong> <span class="dietary-badge ms-2">${dietaryDisplay}</span></div>` : ''}
+                    ${entry.allergens ? `<div class="mb-2 allergen-text"><i class="bi bi-exclamation-triangle text-warning me-1"></i><strong> Contains:</strong> ${entry.allergens}</div>` : ''}
+                    <button type="button" class="btn-complete w-100 mt-3" data-action="complete" data-listing-id="${entry.id}">
+                        <i class="bi bi-check2-all me-2"></i> Mark Completed
+                    </button>
+                </div>
+            </div>
+            `;
+        }).join('');
+    }
+
+    async function completeFood(listingId) {
+        const btn = document.querySelector(`[data-action="complete"][data-listing-id="${listingId}"]`);
+        const originalText = btn?.innerHTML;
+        if (btn) btn.disabled = true;
+
+        try {
+            const data = await apiRequest(`/api/food/complete/${listingId}`, { method: 'POST' });
+            showToast(data.message || 'Marked as completed!', 'success');
+             
+            if (btn) {
+                btn.innerHTML = '<i class="bi bi-check2-all me-2"></i> Completed!';
+                btn.classList.add('completed');
+                btn.disabled = true;
+            }
+            setTimeout(() => loadMyPickups(), 800);
+        } catch (error) {
+            showToast(error.message, 'error');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+    }
+
+    function startAutoRefresh() {
+        stopAutoRefresh();
+        listingsRefreshInterval = setInterval(() => {
+            if (currentTab === 'nearby') {
+                refreshListings();
+            } else {
+                loadMyPickups();
+            }
+        }, 30000);
+    }
+
+    function stopAutoRefresh() {
+        if (listingsRefreshInterval) {
+            clearInterval(listingsRefreshInterval);
+            listingsRefreshInterval = null;
+        }
+    }
+
+    function refreshCurrentTab() {
+        if (currentTab === 'nearby') {
+            refreshListings();
+        } else {
+            loadMyPickups();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', initializeDashboard);
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            refreshCurrentTab();
+            startAutoRefresh();
+        } else {
+            stopAutoRefresh();
+        }
+    });
+
+    window.addEventListener('beforeunload', stopAutoRefresh);
+</script>
+{% endblock %}

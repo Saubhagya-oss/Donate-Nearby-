@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}Food Donation Connect{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row min-vh-100 align-items-center justify-content-center">
+        <div class="col-lg-8 col-xl-7">
+            <div class="hero text-center text-white">
+                <span class="badge-custom mb-4 d-inline-block">
+                    <i class="bi bi-heart-fill me-2"></i>Food Donation Connect
+                </span>
+                <h1 class="display-3 fw-bold mb-4">Turning Surplus Food Into Smiles</h1>
+                <p class="lead mb-5 opacity-75">
+                    Connect your event with nearby NGOs in real time to donate surplus food instead of letting it go to waste.
+                    Fast, responsible, and community-driven.
+                </p>
+
+                <div class="choice-cards row g-4 justify-content-center">
+                    <div class="col-md-5">
+                        <a href="/organizer/signup" class="choice-card card-custom h-100 d-flex flex-column text-decoration-none">
+                            <div class="d-flex align-items-center justify-content-center mb-3">
+                                <div class="bg-gradient text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 64px; height: 64px;">
+                                    <i class="bi bi-building fs-2"></i>
+                                </div>
+                            </div>
+                            <h4 class="fw-bold mb-2">I'm an Organizer</h4>
+                            <p class="text-muted flex-grow-1 mb-3">
+                                Post surplus food from your event and connect with nearby NGOs instantly.
+                                Get real-time confirmations when your food is accepted.
+                            </p>
+                            <div class="d-flex gap-2">
+                                <span class="badge bg-light text-dark px-3 py-2">Real-time alerts</span>
+                                <span class="badge bg-light text-dark px-3 py-2">Live tracking</span>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-5">
+                        <a href="/ngo/signup" class="choice-card card-custom h-100 d-flex flex-column text-decoration-none">
+                            <div class="d-flex align-items-center justify-content-center mb-3">
+                                <div class="bg-gradient text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 64px; height: 64px;">
+                                    <i class="bi bi-people-fill fs-2"></i>
+                                </div>
+                            </div>
+                            <h4 class="fw-bold mb-2">I'm an NGO</h4>
+                            <p class="text-muted flex-grow-1 mb-3">
+                                Get real-time alerts for surplus food near you and arrange pickups fast.
+                                Join a network of trusted organizations making an impact.
+                            </p>
+                            <div class="d-flex gap-2">
+                                <span class="badge bg-light text-dark px-3 py-2">Instant notifications</span>
+                                <span class="badge bg-light text-dark px-3 py-2">Map view</span>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="mt-5 pt-4 border-top border-white border-opacity-25">
+                    <div class="row g-4">
+                        <div class="col-4">
+                            <div class="stat-card">
+                                <div class="stat-number" id="statEvents">0</div>
+                                <div class="stat-label">Events Connected</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-card">
+                                <div class="stat-number" id="statNGOs">0</div>
+                                <div class="stat-label">Active NGOs</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-card">
+                                <div class="stat-number" id="statMeals">0</div>
+                                <div class="stat-label">Meals Saved</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .hero { padding: 20px 0; }
+    .choice-card {
+        background: rgba(255,255,255,0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.3);
+    }
+    .choice-card:hover {
+        background: white;
+        color: #333;
+    }
+    .bg-gradient { background: var(--accent-gradient); }
+    .badge-custom {
+        background: rgba(255,255,255,0.15);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.2);
+        padding: 8px 20px;
+        border-radius: 50px;
+        font-size: 14px;
+        font-weight: 600;
+    }
+    @media (max-width: 576px) {
+        .hero h1 { font-size: 2rem; }
+        .choice-cards { flex-direction: column; align-items: center; }
+    }
+</style>
+
+<script>
+    // Animate statistics on load
+    function animateStat(element, target, duration = 2000) {
+        let start = 0;
+        const increment = target / (duration / 16);
+        function update() {
+            start += increment;
+            if (start < target) {
+                element.textContent = Math.floor(start).toLocaleString();
+                requestAnimationFrame(update);
+            } else {
+                element.textContent = target.toLocaleString();
+            }
+        }
+        update();
+    }
+
+    // Fetch real stats from API
+    async function loadStats() {
+        try {
+            // You can add an API endpoint for stats, for now using demo values
+            animateStat(document.getElementById('statEvents'), 1247);
+            animateStat(document.getElementById('statNGOs'), 89);
+            animateStat(document.getElementById('statMeals'), 56230);
+        } catch (e) {
+            console.log('Stats loading failed');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadStats);
+</script>
+{% endblock %}
